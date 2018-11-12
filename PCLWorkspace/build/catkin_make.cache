@@ -1,0 +1,2 @@
+my_pcl_tutorial
+-DCATKIN_DEVEL_PREFIX=/home/u180120/ProjectWork/PCLWorkspace/devel -DCMAKE_INSTALL_PREFIX=/home/u180120/ProjectWork/PCLWorkspace/install -G Unix Makefiles
