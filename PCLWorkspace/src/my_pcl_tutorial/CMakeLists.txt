@@ -139,6 +139,10 @@ add_executable(example src/example.cpp)
 target_link_libraries(example ${catkin_LIBRARIES})
 add_executable(icp_example src/icp_example.cpp)
 target_link_libraries(icp_example ${catkin_LIBRARIES})
+add_executable(sub src/sub.cpp)
+target_link_libraries(sub ${catkin_LIBRARIES})
+add_executable(PCD_Write src/PCD_Write.cpp)
+target_link_libraries(PCD_Write ${catkin_LIBRARIES})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
