@@ -9,16 +9,23 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/io/io.h>
+#include <vector>
+#include <pcl/io/vtk_lib_io.h>
+#include <pcl/registration/icp.h>
+#include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/registration/ia_ransac.h>
 
 int
 main (int argc, char** argv)
 {
-  /**
-   * Initialize Visualizer
-   */
+  
   
   pcl::PCLPointCloud2::Ptr cloud (new pcl::PCLPointCloud2), cloud_filtered_blob (new pcl::PCLPointCloud2);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>), cloud_p (new pcl::PointCloud<pcl::PointXYZ>), cloud_f (new pcl::PointCloud<pcl::PointXYZ>);
+
+  /**
+   * Initialize Visualizer
+   */
 
   pcl::visualization::PCLVisualizer viewer("Outliers");
   int v1(0);
@@ -33,10 +40,10 @@ main (int argc, char** argv)
   std::cerr << "PointCloud before filtering: " << cloud->width * cloud->height << " data points." << std::endl;
 
   // Create the filtering object: downsample the dataset using a leaf size of 1cm
-  pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
-  sor.setInputCloud (cloud);
-  sor.setLeafSize (0.01f, 0.01f, 0.01f);
-  sor.filter (*cloud_filtered_blob);
+  pcl::VoxelGrid<pcl::PCLPointCloud2> voxG;
+  voxG.setInputCloud (cloud);
+  voxG.setLeafSize (0.01f, 0.01f, 0.01f);
+  voxG.filter (*cloud_filtered_blob);
 
   // Convert to the templated PointCloud
   pcl::fromPCLPointCloud2 (*cloud_filtered_blob, *cloud_filtered);
@@ -45,7 +52,7 @@ main (int argc, char** argv)
 
   // Write the downsampled version to disk
   pcl::PCDWriter writer;
-  writer.write<pcl::PointXYZ> ("table_scene_lms400_downsampled.pcd", *cloud_filtered, false);
+  writer.write<pcl::PointXYZ> ("plane_erased.pcd", *cloud_filtered, false);
 
   pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());
   pcl::PointIndices::Ptr inliers (new pcl::PointIndices ());
@@ -85,7 +92,7 @@ main (int argc, char** argv)
     std::cerr << "PointCloud representing the planar component: " << cloud_p->width * cloud_p->height << " data points." << std::endl;
 
     std::stringstream ss;
-    ss << "table_scene_lms400_plane_" << i << ".pcd";
+    ss << "plane_erase_" << i << ".pcd";
     writer.write<pcl::PointXYZ> (ss.str (), *cloud_p, false);
 /*
     // Create the filtering object
@@ -99,7 +106,7 @@ main (int argc, char** argv)
 
 //cloud_p shows plane only!
   viewer.removePointCloud("cloud_in_v1");
-  viewer.addPointCloud(cloud_p);
+  viewer.addPointCloud(cloud_filtered); //cloud_p
     
   //viewer.addPointCloud (cloud_f);
   while (!viewer.wasStopped()) //
