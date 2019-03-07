@@ -119,6 +119,7 @@ catkin_package(
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -143,6 +144,24 @@ add_executable(sub src/sub.cpp)
 target_link_libraries(sub ${catkin_LIBRARIES})
 add_executable(PCD_Write src/PCD_Write.cpp)
 target_link_libraries(PCD_Write ${catkin_LIBRARIES})
+#add_executable (other_one src/other_one.cpp)
+#target_link_libraries (other_one ${catkin_LIBRARIES})
+add_executable (forum src/forum.cpp)
+target_link_libraries (forum ${catkin_LIBRARIES})
+add_executable (icp_viz src/icp_viz.cpp)
+target_link_libraries (icp_viz ${catkin_LIBRARIES})
+add_executable (new_icp src/new_icp.cpp)
+target_link_libraries (new_icp ${catkin_LIBRARIES})
+
+add_executable (planeSeg2 src/planeSeg2.cpp)
+target_link_libraries (planeSeg2 ${catkin_LIBRARIES})
+
+add_executable (viz src/viz.cpp)
+target_link_libraries (viz ${catkin_LIBRARIES})
+
+add_executable (ECE src/ECE.cpp)
+target_link_libraries (ECE ${catkin_LIBRARIES})
+
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
