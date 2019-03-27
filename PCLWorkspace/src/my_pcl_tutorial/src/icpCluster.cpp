@@ -16,6 +16,7 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/filters/crop_box.h>
+#include <limits>       // std::numeric_limits
 
 
 using namespace std;
@@ -31,7 +32,7 @@ double cloud_shift(0);
 bool frameChanger = false;
 //Crop Box
 float minX = -0.5, minY = -1, minZ = 0.5;
-float maxX = +0.9, maxY = +1, maxZ = +1.8;
+float maxX = +0.9, maxY = +1, maxZ = +1.6;
 
 /*
     --- Keyboard Input ---
@@ -56,7 +57,7 @@ void focusField(pcl::PointCloud<pcl::PointXYZ>::Ptr body){
     boxFilter.setInputCloud(body);
     boxFilter.filter(*bodyFiltered);
 
-    *body = *bodyFiltered;
+    //*body = *bodyFiltered;
 }
 
 
@@ -75,7 +76,7 @@ void planeErase(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud){
     seg.setOptimizeCoefficients (true);
     seg.setModelType (pcl::SACMODEL_PLANE);
     seg.setMethodType (pcl::SAC_RANSAC);
-    seg.setMaxIterations (100);
+    seg.setMaxIterations (1000);
     seg.setDistanceThreshold (0.02);
 
     int i=0, nr_points = (int) cloud->points.size ();
@@ -124,7 +125,7 @@ void extractSearch(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered)
     pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
     ec.setClusterTolerance (0.05); // 5cm
     ec.setMinClusterSize (200);
-    ec.setMaxClusterSize (25000);
+    ec.setMaxClusterSize (25100);
     ec.setSearchMethod (tree);
     ec.setInputCloud (cloud_filtered);
     ec.extract (cluster_indices);
@@ -139,7 +140,7 @@ void extractSearch(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered)
         cloud_cluster->height = 1;
         cloud_cluster->is_dense = true;
 
-        //std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
+        std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
         std::stringstream ss;
         ss << "clusterTemp/cloud_cluster_" << j << ".pcd";
         writer.write<pcl::PointXYZ> (ss.str (), *cloud_cluster, false); //*
@@ -149,13 +150,25 @@ void extractSearch(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered)
 
 }
 
+void
+print4x4Matrix (const Eigen::Matrix4d & matrix)
+{
+  printf ("Rotation matrix :\n");
+  printf ("    | %6.3f %6.3f %6.3f | \n", matrix (0, 0), matrix (0, 1), matrix (0, 2));
+  printf ("R = | %6.3f %6.3f %6.3f | \n", matrix (1, 0), matrix (1, 1), matrix (1, 2));
+  printf ("    | %6.3f %6.3f %6.3f | \n", matrix (2, 0), matrix (2, 1), matrix (2, 2));
+  printf ("Translation vector :\n");
+  printf ("t = < %6.3f, %6.3f, %6.3f >\n\n", matrix (0, 3), matrix (1, 3), matrix (2, 3));
+}
+
 void vizual(Eigen::Matrix4d matrix){
+
     pcl::visualization::PCLVisualizer viz("Transformed item");
     pcl::PCDReader reader;
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
     reader.read ("/usr/local/home/u180120/nethome/ProjectWork/PCLWorkspace/clusterFiles/cloud_cluster_2.pcd", *cloud);
 
-     pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud (new pcl::PointCloud<pcl::PointXYZ> ());
+    pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud (new pcl::PointCloud<pcl::PointXYZ> ());
     
     pcl::transformPointCloud (*cloud, *transformed_cloud, matrix);
 
@@ -221,11 +234,14 @@ int main(int argc, char *argv[]){
 
 
     //int i = 305;
-    int i = 3;
-    while(i < 12){
+    int i = 1;
+    double fitness;
+    //float unfit = 
+
+    while(i < 70){
 
         stringstream sstream;
-        sstream << "/usr/local/home/u180120/nethome/ProjectWork/PCLWorkspace/src/my_pcl_tutorial/src/BF/objectMotion/frame" << i << ".pcd";
+        sstream << "/usr/local/home/u180120/nethome/ProjectWork/PCLWorkspace/src/my_pcl_tutorial/src/BF/kinektMotion/frame" << i << ".pcd";
         string filetarget = sstream.str();
         sstream.str(string());
         sstream.clear();
@@ -234,7 +250,8 @@ int main(int argc, char *argv[]){
         PointCloudT::Ptr targCloud(new PointCloudT);  // Target point cloud
         PointCloudT::Ptr transCloud(new PointCloudT); // ICP output point cloud
 
-        PointCloudT::Ptr tempCloud(new PointCloudT);
+        PointCloudT::Ptr tempCloud1(new PointCloudT);
+        PointCloudT::Ptr tempCloud(new PointCloudT);    //Temperary Cloud point ... Extract From 
 
         pcl::console::TicToc time;
         time.tic();
@@ -264,28 +281,7 @@ int main(int argc, char *argv[]){
             return (-1);
         }
         vector<int> v;
-
         pcl::removeNaNFromPointCloud(*tempCloud, *tempCloud, v);
-        /*
-        if (voxGSize > 0)
-        {
-        // Reduces data size -> Improves alignment speed
-        cout << "Filtering scan and CAD clouds" << endl
-            << "----------------------------" << endl;
-        pcl::console::TicToc time;
-        time.tic();
-        pcl::VoxelGrid<PointT>voxG;
-        voxG.setLeafSize(voxGSize, voxGSize, voxGSize);
-        voxG.setInputCloud(originalCloud);
-        voxG.filter(*originalCloud);
-        voxG.setInputCloud(targCloud);
-        voxG.filter(*targCloud);
-        cout << "Filtered 2 clouds in " << time.toc() << " ms " << endl;
-        cout << "Scan cloud size: " << originalCloud->size() << endl;
-        cout << "CAD cloud size: " << targCloud->size() << endl
-            << endl;
-        }
-        */
         focusField(tempCloud);
         planeErase(tempCloud);
         extractSearch(tempCloud);
@@ -311,11 +307,10 @@ int main(int argc, char *argv[]){
 
         cout << "frame" << i <<" Loaded Successfully\n" << endl; 
 
-        /*
-        ---  Downsize  ---
-        */
-       
 
+        /*
+        ---  Matrix Declaration  ---
+        */
         Eigen::Matrix4d transformation_matrix = Eigen::Matrix4d::Identity();
     
         std::cout << "Applying this rigid transformation to: originalCloud -> transCloud" << std::endl;
@@ -346,10 +341,17 @@ int main(int argc, char *argv[]){
         {
             cout << "\nICP has converged, score is " << icp.getFitnessScore() << endl;
             cout << "\nICP transformation " << icp_iterations << " : transCloud -> originalCloud" << endl;
-            //transformation_matrix = icp.getFinalTransformation().cast<double>();
-            //print4x4Matrix(transformation_matrix);
-            Eigen::Matrix4f transformation_matrix = icp.getFinalTransformation();
-            cout << "trans %n" << transformation_matrix << endl;
+            transformation_matrix = icp.getFinalTransformation().cast<double>();
+            //cout << "trans %n" << transformation_matrix << endl;
+            print4x4Matrix(transformation_matrix);
+            
+            if(i == 1 ){
+                final_matrix = icp.getFinalTransformation().cast<double>();
+            }
+            else{
+                final_matrix = final_matrix * icp.getFinalTransformation().cast<double>();
+            }
+
         }
         else
         {
@@ -430,7 +432,8 @@ int main(int argc, char *argv[]){
                     
                     transformation_matrix = icp.getFinalTransformation().cast<double>();
                     
-                    std::cout<<"\ntrans %n \n"<<transformation_matrix<<std::endl;
+                    //std::cout<<"\ntrans %n \n"<<transformation_matrix<<std::endl;
+                    print4x4Matrix(transformation_matrix);
 
                     ss.str("");
                     ss << icp_iterations;
@@ -439,6 +442,8 @@ int main(int argc, char *argv[]){
                     viewer.updatePointCloud(transCloud, transCloud_color_h, "transCloud_v2");
                     viewer.updatePointCloud(targCloud, targCloud_color_h, "targCloud_v1");
                     viewer.updatePointCloud(originalCloud, originalCloud_color_h, "originalCloud_v1");
+
+                    final_matrix = final_matrix * icp.getFinalTransformation().cast<double>();
 
                 }
                 else
@@ -450,17 +455,26 @@ int main(int argc, char *argv[]){
 
             }
         }
-        if(i <= 0 ){
-            final_matrix = transformation_matrix;
+
+        fitness = fitness + icp.getFitnessScore();
+        /*
+        if(i == 1 ){
+            final_matrix = icp.getFinalTransformation().cast<double>();
         }
         else{
-            final_matrix *= transformation_matrix;
+            final_matrix = final_matrix * icp.getFinalTransformation().cast<double>();
         }
+        */
+       fileIn = obj;
             
         i++;
     }
+
     std::cout << "Loop Completed!"<<endl;
-    std::cout<<"\ntrans %n \n"<<final_matrix<<std::endl;
+    //std::cout<<"\ntrans %n \n"<<final_matrix<<std::endl;
+    print4x4Matrix(final_matrix);
+
+    cout <<"\nICP Fitness Score: " << fitness/70 << endl;
 
     vizual(final_matrix);
 
